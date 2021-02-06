@@ -17,10 +17,10 @@ import sys
 import time
 import serial
 
-class ArduinoDataReciever(threading.Thread):
+class ArduinoDataReceiver(threading.Thread):
 
     def __init__(self, port="/dev/ttyUSB0"):
-        super(ArduinoDataReciever, self).__init__()
+        super(ArduinoDataReceiver, self).__init__()
         self.port = port
         self.received_data = {}
         self.stop = False
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     adc_pins = ("A0",)
 
     # Arduinoからのデータを受信するスレッドを作成
-    t = ArduinoDataReciever(port)
+    t = ArduinoDataReceiver(port)
 
     # スレッドを実行
     t.start()
