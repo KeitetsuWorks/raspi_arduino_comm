@@ -19,10 +19,13 @@ import serial
 
 class ArduinoDataReceiver(threading.Thread):
 
-    def __init__(self, port="/dev/ttyUSB0"):
+    def __init__(self, lock, port="/dev/ttyUSB0"):
         super(ArduinoDataReceiver, self).__init__()
         self.port = port
+        self.lock = lock
+        self.lock.acquire()
         self.received_data = {}
+        self.lock.release()
         self.stop = False
 
         # シリアルポートをオープン
@@ -45,7 +48,9 @@ class ArduinoDataReceiver(threading.Thread):
             # 分割結果が2要素であれば，第1要素のピン名をキー，第2要素を値として
             # self.received_dataに保存する
             if (len(line_elements) == 2):
+                self.lock.acquire()
                 self.received_data[line_elements[0]] = int(line_elements[1])
+                self.lock.release()
 
         # シリアルポートをクローズ
         self.ser.close()
@@ -77,8 +82,11 @@ if __name__ == "__main__":
     # A/D変換ピンのリスト
     adc_pins = ("A0",)
 
+    # ロックを作成
+    lock = threading.Lock()
+
     # Arduinoからのデータを受信するスレッドを作成
-    t = ArduinoDataReceiver(port)
+    t = ArduinoDataReceiver(lock, port)
 
     # スレッドを実行
     t.start()
@@ -86,10 +94,13 @@ if __name__ == "__main__":
     try:
         print("Press Ctrl+C to quit")
         while True:
+            lock.acquire()
+            received_data = t.received_data.copy()
+            lock.release()
             for adc_pin in adc_pins:
-                if (adc_pin in t.received_data):
+                if (adc_pin in received_data):
                     # ピン名が一致する値が存在する場合は，その値とレベルバーを表示する
-                    adc_value = t.received_data[adc_pin]
+                    adc_value = received_data[adc_pin]
                     level_bar = get_level_bar(adc_value)
                     print("%s: %4d [%s]" % (adc_pin, adc_value, level_bar))
                 else:
